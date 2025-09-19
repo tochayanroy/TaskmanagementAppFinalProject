@@ -1,10 +1,13 @@
+import { useRouter } from 'expo-router'
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Button, StyleSheet, Text, View } from 'react-native'
 
 const Profile = () => {
+  const router = useRouter()
   return (
     <View>
       <Text>Profile</Text>
+      <Button title='Go Demo' onPress={()=>router.push('./Demo')}></Button>
     </View>
   )
 }
