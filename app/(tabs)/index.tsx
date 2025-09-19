@@ -20,7 +20,7 @@ type Task = {
   priority: "Low" | "Medium" | "High";
 };
 
-export default function HomeScreen() {
+export default function index() {
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: "1",
@@ -58,13 +58,13 @@ export default function HomeScreen() {
   const priorities: Task["priority"][] = ["Low", "Medium", "High"];
 
 
-const truncateByWords = (text: string, limit: number) => {
-  const noSpaces = text.replace(/\s+/g, "");
-  if (noSpaces.length > limit) {
-    return noSpaces.slice(0, limit) + "..."; // 100 char + ...
-  }
-  return noSpaces;
-};
+  const truncateByWords = (text: string, limit: number) => {
+    const noSpaces = text.replace(/\s+/g, "");
+    if (noSpaces.length > limit) {
+      return noSpaces.slice(0, limit) + "..."; // 100 char + ...
+    }
+    return noSpaces;
+  };
 
 
   const openAddModal = () => {
@@ -109,12 +109,12 @@ const truncateByWords = (text: string, limit: number) => {
         prev.map((t) =>
           t.id === editingId
             ? {
-                ...t,
-                title: formTitle,
-                description: formDescription,
-                status: formStatus,
-                priority: formPriority,
-              }
+              ...t,
+              title: formTitle,
+              description: formDescription,
+              status: formStatus,
+              priority: formPriority,
+            }
             : t
         )
       );
@@ -145,8 +145,8 @@ const truncateByWords = (text: string, limit: number) => {
               item.status === "Completed"
                 ? { backgroundColor: "#4CAF50" }
                 : item.status === "In Progress"
-                ? { backgroundColor: "#FF9800" }
-                : { backgroundColor: "#F44336" },
+                  ? { backgroundColor: "#FF9800" }
+                  : { backgroundColor: "#F44336" },
             ]}
           >
             {item.status}
@@ -158,8 +158,8 @@ const truncateByWords = (text: string, limit: number) => {
               item.priority === "High"
                 ? { color: "#F44336" }
                 : item.priority === "Medium"
-                ? { color: "#FF9800" }
-                : { color: "#4CAF50" },
+                  ? { color: "#FF9800" }
+                  : { color: "#4CAF50" },
             ]}
           >
             {item.priority}

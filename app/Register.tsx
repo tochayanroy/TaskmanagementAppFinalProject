@@ -1,15 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
+
+
 export default function RegisterScreen() {
+  const router = useRouter()
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -116,7 +120,7 @@ export default function RegisterScreen() {
 
           {/* Footer */}
           <Text style={styles.footer}>
-            Already have an account? <Text style={styles.link}>Sign In</Text>
+            Already have an account? <TouchableOpacity onPress={() => router.push('./Login')}><Text style={styles.link}>Sign In</Text></TouchableOpacity>
           </Text>
         </View>
       </View>
