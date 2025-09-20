@@ -7,13 +7,13 @@ export default function RootLayout() {
 
   useEffect(() => {
     const checkLogin = async () => {
-      const token = await AsyncStorage.getItem("userToken");
+      const token = await AsyncStorage.getItem("auth_token");
       setIsLoggedIn(!!token);
     };
     checkLogin();
   }, []);
 
-  if (isLoggedIn) {
+  if (!isLoggedIn) {
     return (
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" />

@@ -1,7 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+
+
 import {
   StyleSheet,
   Text,
@@ -12,18 +16,58 @@ import {
 
 export default function LoginScreen() {
   const router = useRouter()
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    alert(email)
-    alert(password)
-    console.log("Email:", email);
-    console.log("Password:", password);
+
+
+
+
+
+  const login = async() => {
+    try{
+    } 
+    catch(err) {
+      console.log(err);
+    }
+  }
+
+
+
+
+
+
+
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post('https://taskbackend.tochayanroy.in/user/login', {
+        email,
+        password
+      });
+
+      await AsyncStorage.setItem('auth_token', response.data.auth_token);
+
+      alert('Success', 'Login successful!');
+      
+    } catch (error) {
+      console.error('Login error:', error); 
+    }
   };
 
+
+
+
+
+
+
+
+
+
+
+
+  
   return (
     <LinearGradient colors={["#fe4f4fff", "#0004feff"]} style={styles.container}>
       <View style={styles.wrapper}>
@@ -82,7 +126,7 @@ export default function LoginScreen() {
 
           {/* Footer */}
           <Text style={styles.footer}>
-            Don’t have an account? <TouchableOpacity onPress={()=>router.push('./Register')}><Text style={styles.link}>Sign Up</Text></TouchableOpacity>
+            Don’t have an account? <TouchableOpacity onPress={() => router.push('./Register')}><Text style={styles.link}>Sign Up</Text></TouchableOpacity>
           </Text>
         </View>
       </View>

@@ -1,7 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+ 
 import {
+  Alert,
   FlatList,
   Modal,
   ScrollView,
@@ -12,8 +16,10 @@ import {
   View
 } from "react-native";
 
+// Define the API base URL
+
 type Task = {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   status: "Pending" | "In Progress" | "Completed";
@@ -21,31 +27,13 @@ type Task = {
 };
 
 export default function index() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Finish React Native Project",
-      description: "Complete UI & integrate backend nfv dkfn vjdf vdfhbkv dfhvbdsvdhsvdhk jdvbjdhv dsiyvdshgvcisdyjhcg sidjcghds c",
-      status: "In Progress",
-      priority: "High",
-    },
-    {
-      id: "2",
-      title: "Buy Groceries",
-      description: "Milk, Eggs, Bread",
-      status: "Pending",
-      priority: "Medium",
-    },
-    {
-      id: "3",
-      title: "Workout",
-      description: "1 hour gym session",
-      status: "Completed",
-      priority: "Low",
-    },
-  ]);
-
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+
+  // You need to get the token from your authentication system
+  // For now, I'll use a placeholder - replace with your actual token retrieval logic
+  const [token, setToken] = useState<string>("your-auth-token-here");
 
   // form state (for both add & edit)
   const [formTitle, setFormTitle] = useState("");
@@ -57,15 +45,42 @@ export default function index() {
   const statuses: Task["status"][] = ["Pending", "In Progress", "Completed"];
   const priorities: Task["priority"][] = ["Low", "Medium", "High"];
 
+  // Fetch all tasks on component mount
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
-  const truncateByWords = (text: string, limit: number) => {
-    const noSpaces = text.replace(/\s+/g, "");
-    if (noSpaces.length > limit) {
-      return noSpaces.slice(0, limit) + "..."; // 100 char + ...
+  const fetchTasks = async () => {
+
+    try {
+      const token = await AsyncStorage.getItem("auth_token");
+
+
+      setLoading(true);
+      const response = await axios.get(`https://taskbackend.tochayanroy.in/task/getAllTask`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setTasks(response.data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      Alert.alert("Error", "Failed to fetch tasks");
+    } finally {
+      setLoading(false);
     }
-    return noSpaces;
   };
 
+  const truncateByWords = (text: string, limit: number) => {
+    if (!text) return "";
+
+    if (text.length <= limit) {
+      return text;
+    }
+
+    // Truncate to the specified limit and add ellipsis
+    return text.slice(0, limit) + "...";
+  };
 
   const openAddModal = () => {
     setEditingId(null);
@@ -77,7 +92,7 @@ export default function index() {
   };
 
   const handleEdit = (task: Task) => {
-    setEditingId(task.id);
+    setEditingId(task._id);
     setFormTitle(task.title);
     setFormDescription(task.description);
     setFormStatus(task.status);
@@ -85,58 +100,86 @@ export default function index() {
     setModalVisible(true);
   };
 
-  const handleDelete = (id: string) => {
-    alert("Confirm Delete", "Are you sure you want to delete this task?", [
+  const handleDelete = async (taskId: string) => {
+    Alert.alert("Confirm Delete", "Are you sure you want to delete this task?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => setTasks((prev) => prev.filter((t) => t.id !== id)),
+        onPress: async () => {
+          try {
+                  const token = await AsyncStorage.getItem("auth_token");
+
+            await axios.delete(`https://taskbackend.tochayanroy.in/task/deleteTask/${taskId}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            Alert.alert("Success", "Task deleted successfully");
+            fetchTasks(); // Refresh the task list
+          } catch (error) {
+            console.error("Error deleting task:", error);
+            Alert.alert("Error", "Failed to delete task");
+          }
+        },
       },
     ]);
   };
 
-  const handleSave = () => {
-    const titleTrimmed = formTitle.trim();
-    if (!titleTrimmed) {
-      alert("Validation", "Please enter a task title.");
-      return;
-    }
+  const handleSave = async () => {
+console.log("hii");
 
-    if (editingId) {
-      // update
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === editingId
-            ? {
-              ...t,
-              title: formTitle,
-              description: formDescription,
-              status: formStatus,
-              priority: formPriority,
-            }
-            : t
-        )
-      );
-    } else {
-      // add
-      const newTask: Task = {
-        id: Date.now().toString(),
-        title: formTitle,
-        description: formDescription,
-        status: formStatus,
-        priority: formPriority,
-      };
-      setTasks((prev) => [newTask, ...prev]);
-    }
+    try {
+            const token = await AsyncStorage.getItem("auth_token");
 
-    setModalVisible(false);
+      if (editingId) {
+ 
+        await axios.put(
+          `https://taskbackend.tochayanroy.in/task/updateTask/${editingId}`,
+          {
+            title: formTitle,
+            description: formDescription,
+            status: formStatus,
+            priority: formPriority,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        Alert.alert("Success", "Task updated successfully");
+      } else {
+       
+        await axios.post(
+          `https://taskbackend.tochayanroy.in/task/createTask`,
+          {
+            title: formTitle,
+            description: formDescription,
+            status: formStatus,
+            priority: formPriority,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        Alert.alert("Success", "Task created successfully");
+      }
+
+      setModalVisible(false);
+      fetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error("Error saving task:", error);
+      Alert.alert("Error", "Failed to save task");
+    }
   };
 
   const renderTask = ({ item }: { item: Task }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.taskTitle}>{truncateByWords(item.title, 30)}</Text>
+        <Text style={styles.taskTitle}>{truncateByWords(item.title, 20)}</Text>
 
         <View style={styles.badges}>
           <Text
@@ -182,7 +225,7 @@ export default function index() {
 
         <TouchableOpacity
           style={[styles.actionBtn, { marginLeft: 18 }]}
-          onPress={() => handleDelete(item.id)}
+          onPress={() => handleDelete(item._id)}
         >
           <Ionicons name="trash-outline" size={20} color="#f44336" />
           <Text style={[styles.actionText, { color: "#f44336" }]}>
@@ -193,13 +236,26 @@ export default function index() {
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text>Loading tasks...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
         data={tasks}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         renderItem={renderTask}
         contentContainerStyle={{ padding: 15, paddingBottom: 120 }}
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Text>No tasks found. Add a new task to get started!</Text>
+          </View>
+        }
       />
 
       {/* FAB */}
@@ -310,6 +366,11 @@ export default function index() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9f9f9" },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
   card: {
     backgroundColor: "#fff",
     borderRadius: 15,
