@@ -3,7 +3,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
- 
 import {
   Alert,
   FlatList,
@@ -16,26 +15,22 @@ import {
   View
 } from "react-native";
 
-// Define the API base URL
-
 type Task = {
   _id: string;
   title: string;
   description: string;
   status: "Pending" | "In Progress" | "Completed";
   priority: "Low" | "Medium" | "High";
+  dueDate?: string;
 };
 
 export default function index() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [token, setToken] = useState<string>("");
 
-  // You need to get the token from your authentication system
-  // For now, I'll use a placeholder - replace with your actual token retrieval logic
-  const [token, setToken] = useState<string>("your-auth-token-here");
-
-  // form state (for both add & edit)
+  // form state
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formStatus, setFormStatus] = useState<Task["status"]>("Pending");
@@ -45,16 +40,17 @@ export default function index() {
   const statuses: Task["status"][] = ["Pending", "In Progress", "Completed"];
   const priorities: Task["priority"][] = ["Low", "Medium", "High"];
 
-  // Fetch all tasks on component mount
   useEffect(() => {
     fetchTasks();
   }, []);
 
   const fetchTasks = async () => {
-
     try {
       const token = await AsyncStorage.getItem("auth_token");
-
+      if (!token) {
+        Alert.alert("Error", "No authentication token found");
+        return;
+      }
 
       setLoading(true);
       const response = await axios.get(`https://taskbackend.tochayanroy.in/task/getAllTask`, {
@@ -73,12 +69,7 @@ export default function index() {
 
   const truncateByWords = (text: string, limit: number) => {
     if (!text) return "";
-
-    if (text.length <= limit) {
-      return text;
-    }
-
-    // Truncate to the specified limit and add ellipsis
+    if (text.length <= limit) return text;
     return text.slice(0, limit) + "...";
   };
 
@@ -108,15 +99,14 @@ export default function index() {
         style: "destructive",
         onPress: async () => {
           try {
-                  const token = await AsyncStorage.getItem("auth_token");
-
+            const token = await AsyncStorage.getItem("auth_token");
             await axios.delete(`https://taskbackend.tochayanroy.in/task/deleteTask/${taskId}`, {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
             });
             Alert.alert("Success", "Task deleted successfully");
-            fetchTasks(); // Refresh the task list
+            fetchTasks();
           } catch (error) {
             console.error("Error deleting task:", error);
             Alert.alert("Error", "Failed to delete task");
@@ -127,21 +117,30 @@ export default function index() {
   };
 
   const handleSave = async () => {
-console.log("hii");
+    if (!formTitle.trim()) {
+      Alert.alert("Error", "Please enter a task title");
+      return;
+    }
 
     try {
-            const token = await AsyncStorage.getItem("auth_token");
+      const token = await AsyncStorage.getItem("auth_token");
+      if (!token) {
+        Alert.alert("Error", "Authentication token missing");
+        return;
+      }
+
+      const taskData = {
+        title: formTitle,
+        description: formDescription,
+        status: formStatus,
+        priority: formPriority,
+        dueDate: new Date().toISOString(),
+      };
 
       if (editingId) {
- 
         await axios.put(
           `https://taskbackend.tochayanroy.in/task/updateTask/${editingId}`,
-          {
-            title: formTitle,
-            description: formDescription,
-            status: formStatus,
-            priority: formPriority,
-          },
+          taskData,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -150,15 +149,9 @@ console.log("hii");
         );
         Alert.alert("Success", "Task updated successfully");
       } else {
-       
         await axios.post(
           `https://taskbackend.tochayanroy.in/task/createTask`,
-          {
-            title: formTitle,
-            description: formDescription,
-            status: formStatus,
-            priority: formPriority,
-          },
+          taskData,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -169,10 +162,10 @@ console.log("hii");
       }
 
       setModalVisible(false);
-      fetchTasks(); // Refresh the task list
-    } catch (error) {
+      fetchTasks();
+    } catch (error: any) {
       console.error("Error saving task:", error);
-      Alert.alert("Error", "Failed to save task");
+      Alert.alert("Error", error.response?.data?.error || "Failed to save task");
     }
   };
 
@@ -180,7 +173,6 @@ console.log("hii");
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.taskTitle}>{truncateByWords(item.title, 20)}</Text>
-
         <View style={styles.badges}>
           <Text
             style={[
@@ -194,7 +186,6 @@ console.log("hii");
           >
             {item.status}
           </Text>
-
           <Text
             style={[
               styles.priority,
@@ -213,6 +204,12 @@ console.log("hii");
       <Text style={styles.description}>
         {truncateByWords(item.description, 50)}
       </Text>
+
+      {item.dueDate && (
+        <Text style={styles.dueDate}>
+          Due: {new Date(item.dueDate).toLocaleDateString()}
+        </Text>
+      )}
 
       <View style={styles.actions}>
         <TouchableOpacity
@@ -258,22 +255,20 @@ console.log("hii");
         }
       />
 
-      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={openAddModal}>
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
 
-      {/* Modal for Add / Edit */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <ScrollView contentContainerStyle={{ paddingBottom: 10 }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
               <Text style={styles.modalTitle}>
                 {editingId ? "Edit Task" : "Add New Task"}
               </Text>
 
               <TextInput
-                placeholder="Task Title"
+                placeholder="Task Title *"
                 style={styles.input}
                 value={formTitle}
                 onChangeText={setFormTitle}
@@ -389,6 +384,7 @@ const styles = StyleSheet.create({
   },
   taskTitle: { fontSize: 16, fontWeight: "700", color: "#222" },
   description: { fontSize: 14, color: "#666", marginVertical: 8 },
+  dueDate: { fontSize: 12, color: "#888", marginBottom: 8 },
   badges: { flexDirection: "row", alignItems: "center" },
   status: {
     color: "#fff",
@@ -407,8 +403,6 @@ const styles = StyleSheet.create({
   },
   actionBtn: { flexDirection: "row", alignItems: "center" },
   actionText: { fontSize: 14, fontWeight: "500", color: "#1a73e8" },
-
-  // FAB
   fab: {
     position: "absolute",
     bottom: 25,
@@ -425,8 +419,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
-
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -458,7 +450,6 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   label: { fontSize: 13, color: "#444", marginBottom: 6 },
-
   optionRow: { flexDirection: "row", alignItems: "center" },
   optionBtn: {
     paddingVertical: 8,
@@ -474,7 +465,6 @@ const styles = StyleSheet.create({
   },
   optionText: { fontSize: 13, color: "#333" },
   optionTextActive: { color: "#0072ff", fontWeight: "700" },
-
   addBtn: { marginTop: 14, borderRadius: 12, overflow: "hidden" },
   addBtnBg: { paddingVertical: 12, alignItems: "center", borderRadius: 12 },
   addBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },

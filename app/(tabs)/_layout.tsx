@@ -22,15 +22,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-       <Tabs.Screen
-        name="Demo"
-        options={{
-          title: "Demo",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
     </Tabs>
   );
 }
